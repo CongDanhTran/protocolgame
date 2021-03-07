@@ -1,0 +1,248 @@
+<html>
+  <head>
+    <title>Security Protocols Analysis</title>
+	  <script src="../src/svg.js" type="text/javascript"></script>
+	  <script src="../src/Agent.js" type="text/javascript"></script>
+	  <script src="../src/Fact.js" type="text/javascript"></script>
+	  <script src="../src/NetStack.js" type="text/javascript"></script>
+	  <script src="../src/Command.js" type="text/javascript"></script>
+	  <script src="../src/ProtocolGame.js" type="text/javascript"></script>
+	  <link rel="stylesheet" href="../style.css">
+    
+  </head>
+
+  <body onload="c1.retrieve_cmds();">
+
+    <div class='desc'>
+      <h2>Protocol Game</h2>
+
+      In case you've missed them, check first the <a href='intro.html'>introduction</a>.
+      <!-- For those already familiar with the game, you can jump to the <a href="intro_exercises.html">list of exercises</a>.  -->
+
+      <h3>Interactive game</h3>
+      <p> We now introduce the console, so that you can execute yourself the different commands of the attackers!
+
+      <p> Let us start with four simple network control commands:
+	<ul>
+	  <li><span class='cmd'>encrypt(fact, key)</span>: if E knows both <span class='cmd'>fact</span> and <span class='cmd'>key</span>, then E will know  <span class='cmd'>{fact}key</span>; 
+	  <li><span class='cmd'>decrypt({fact}key, key)</span>: if E knows both <span class='cmd'>{fact}key</span> and <span class='cmd'>key</span>, then E will know  <span class='cmd'>fact</span>; 
+	    
+	</ul>
+	
+      <p> For instance, let us consider the following protocol:
+	<p>
+	  <b>Knowledge:</b> A:[s, hello], B:[K], E:[fake]<br>
+	  <b>Steps:</b>
+	  <ol>
+	    <li> A -> B: hello
+	    <li> B -> A: #K
+	    <li> A -> B: {#s}K
+	  </ol>
+	  
+	<p> Can you figure out a way for E to know the session secret? Can you figure out a way for B to know "fake"? </p>
+    </div>
+    <div class='game'>
+      <div class='inlined' id='box1' style="height:450px">
+	<div class='agents' id='agents_box1'></div>
+	<div class='networkbar' id='bar'></div>
+	<div class='adversary' id='adversary_box1'></div>
+	<div class='network'>
+	  <center>Network stack</center>
+	  <ul id='message_list1'>
+	  </ul>
+	</div>
+	
+      </div>
+      <div id='console'>
+	<div id='command'>
+	  <h2>Commands</h2>
+	  <textarea rows='11' type='text' id='commandbox'
+		    onkeydown="if (event.ctrlKey && event.keyCode == 13)
+			       document.getElementById('execute_cmds_button').click()"></textarea><br/>
+	  
+	  <button id='execute_cmds_button'
+		  onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value);">Execute commands (Ctrl + Enter)</button>
+	  <button
+	    id='add_msg_button'
+	    onclick="localStorage.clear(); location.reload();">Clear all</button>
+	</div>
+	<div id='console_log'>
+	  <p id='log' class='err'>
+	</div>
+      </div>
+      
+    </div>
+    <div class='desc'>
+	<p> The <a href="intro_game_server.html">next exercise</a> considers a simple server key protocol. 
+	</p>
+	<script>
+
+	  class Sender extends Agent {
+	      
+	      constructor(id, facts, network) {
+		  super(id, facts, network);
+		  this.session = 0;
+		  this.state = 0;
+	      }
+	      
+	      // Sender has the following states
+	      // init: initial state, ready to send message 1
+	      // (in case of multiple sessions, message 3 from previous session
+	      // has been sent)
+	      // waiting_2: message 1 sent, waiting for message 2. 
+	      
+	      process (msg, step) {
+		  switch (this.state) {
+		  case 0:
+		      this.init(step); break;
+		  case 1:
+		      this.sendEncryptedSecret(msg, step); break;
+		  default:
+		      throw 'Unknown state for agent ' + this.id;
+		  }
+	      }
+	      
+	      getSessionSecret (step) {
+		  var secret = 's_' + this.session;
+		  this.learns(secret, step)
+		  return secret;
+	      }
+	      
+	      sendEncryptedSecret(msg, step) {
+		  var facts = msg.content.getFacts();
+		  if (facts.length != 1) { 
+		      console.log('Expecting exactly one argument, received: ' + facts.length);
+		      return;
+		  }
+		  
+		  var k = facts[0];
+		  this.learns(k, step);
+		  
+		  var new_msg = {source:this.id, destination:'B',
+				 content:this.encrypt(this.getSessionSecret(step), k, step)};
+		  this.sendMessage(new_msg, step);
+		  this.state = 0;
+		  
+	      }
+	      
+	      init (step) {
+		  var msg = {source:this.id, destination:'B', content:'hello'}; 
+		  this.sendMessage(msg, step);
+		  this.session++;
+		  this.state = 1;
+	      }
+	  }
+
+	  class Receiver extends Agent {
+	      constructor(id, facts, network) {
+		  super(id, facts, network);
+		  this.session = 0;
+		  this.state = 0;
+		  this.key = null;
+	      }
+
+	      process(msg, step) {
+		  switch (this.state) {
+		  case 0:
+		      this.sendKey(msg, step); break;
+		  case 1:
+		      this.decryptMessage(msg, step); break;
+		  default:
+		      throw 'Unknown state for agent ' + this.id;
+		      
+		  }
+
+
+	      }
+
+	      getFreshKey(step) {
+		  var k = 'K_' + this.session;
+		  this.learns(k, step)
+		  this.key = k;
+		  return k;
+	      }
+
+	      
+	      sendKey(msg, step) {
+		  var facts = msg.content.getFacts();
+		  if (facts.length != 1) { 
+		      console.log('Expecting exactly one argument, received: ' + facts.length);
+		      return;
+		  }
+		  
+		  var hello = facts[0];
+		  if (hello != 'hello') { 
+		      console.log('Expecting hello, received: ' + hello);
+		      return;
+		  }
+		  this.learns(hello, step);
+		  var new_msg = {source:this.id, destination:'A',
+				 content:this.getFreshKey(step)};
+		  this.sendMessage(new_msg, step);
+		  this.state = 1;
+	      }
+
+	      decryptMessage(msg, step) {
+		  var facts = msg.content.getFacts();
+		  if (facts.length != 1) { 
+		      console.log('Expecting exactly one argument, received: ' + facts.length);
+		      return;
+		  }
+		  
+		  this.learns(facts[0]);
+		  this.decrypt(facts[0], this.key, step);
+		  this.step = 0; 
+	      }
+
+	  }
+
+	  class Attacker extends Agent {
+	      process (msg) {
+		  this.learns(msg.content.getFacts()[0]);
+	      }
+	  }
+	  
+	  var s1 = new NetStack('message_list1');	  
+	  var a1 = new Sender('A', [], s1);
+	  var b1 = new Receiver('B', [], s1);
+	  var e1 = new Attacker('E', [], s1);
+	  s1.registerAgents([a1, b1, e1]);
+	  s1.registerAttacker(e1);
+	  var c1 = new Command(s1, e1, [a1, b1, e1]);
+	  a1.learns('s', 0);
+	  a1.learns('hello', 0);
+	  b1.learns('K', 0);
+	  e1.learns('fake', 0);
+	  a1.createDiv('agents_box1', 'agent');      
+	  b1.createDiv('agents_box1', 'agent');
+	  e1.createDiv('adversary_box1', 'agent_top_right');
+
+	  setCurrentStep(0);
+	  
+	</script>
+	  
+
+    </div>      
+    
+
+        <svg>
+      <defs>
+	<marker id="markerCircle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+          <circle cx="5" cy="5" r="3" style="stroke: none; fill:blue;"/>
+	</marker>
+	
+	<marker id="markerArrow" markerWidth="13" markerHeight="8" refX="2" refY="5"
+		orient="auto">
+          <path d="M2,2 L2,8 L10,5 L2,2" style="fill: blue;" />
+	</marker>
+	<marker id="markerBackArrow" markerWidth="13" markerHeight="13" refX="2" refY="5"
+		orient="auto">
+          <path d="M8,2 L8,8 L0,5 L8,2" style="fill: blue;" />
+	</marker>
+	<marker id="triangle" viewBox="0 0 10 10" refX="0" refY="5"
+		markerUnits="strokeWidth" markerWidth="10"
+		markerHeight="8" orient="auto">
+	  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+	</marker>
+      </defs>
+    </svg>

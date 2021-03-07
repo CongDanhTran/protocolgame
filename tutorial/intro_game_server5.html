@@ -1,0 +1,310 @@
+<html>
+  <head>
+    <title>Security Protocols Analysis</title>
+	  <script src="../src/svg.js" type="text/javascript"></script>
+	  <script src="../src/Agent.js" type="text/javascript"></script>
+	  <script src="../src/Fact.js" type="text/javascript"></script>
+	  <script src="../src/NetStack.js" type="text/javascript"></script>
+	  <script src="../src/Command.js" type="text/javascript"></script>
+	  <script src="../src/ProtocolGame.js" type="text/javascript"></script>
+	  <link rel="stylesheet" href="../style.css">
+  </head>
+  
+  <body onload="c1.retrieve_cmds();">
+
+    <div id='intro'>
+      <h2>Protocol Game</h2>
+
+      In case you've missed them, check first the <a href='intro.html'>introduction</a>.
+      <!-- For those already familiar with the game, you can jump to the <a href="intro_exercises.html">list of exercises</a>.  -->
+
+      <h3>Interactive game</h3>
+	
+      <p> Let us consider now the following protocol:
+	<p>
+	  <b>Knowledge:</b> A:[s, KAS, A, B, NA], B:[KBS, A, B],
+	  S:[A, B, E, KAS, KBS, KES, K] E:[A, B, NE,  KES, fake]<br>
+	  <b>Steps:</b>
+	  <ol>
+	    <li> A -> S: A, B, #NA
+	    <li> S -> A: {#NA, #K, B, {K}KBS}KAS
+	    <li> A -> B: {K}KBS, {#s}K
+	  </ol>
+
+	<p> In this protocol, the server uses the explicit of the recipient and a nonce.
+	  Can you figure out a way for E to know the session secret? Can you figure out a way for B to know "fake"? 
+
+	  <div class='game'>
+	    <div class='inlined' id='box1' style="height:570px">
+	      <div class='agents' id='agents_box1'></div>
+	      <div class='networkbar' id='bar'></div>
+	      <div class='adversary' id='adversary_box1'></div>
+	      <div class='network'>
+		<center>Network stack</center>
+		<ul id='message_list1'>
+		</ul>
+	      </div>
+	      
+	    </div>
+	    <div id='console'>
+	      <div id='command'>
+		<h2>Commands</h2>
+		<textarea rows='11' type='text' id='commandbox'
+			  onkeydown="if (event.ctrlKey && event.keyCode == 13)
+				     document.getElementById('execute_cmds_button').click()"></textarea><br/>
+		
+		<button id='execute_cmds_button'
+			onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value);">Execute commands (Ctrl + Enter)</button>
+		<button
+		  id='add_msg_button'
+		  onclick="localStorage.clear(); location.reload();">Clear all</button>
+	      </div>
+	      <div id='console_log'>
+		<p id='log' class='err'>
+	      </div>
+	    </div>
+	    
+	  </div>
+	  <div class='desc'> In the next <a href="intro_game_server6.html">part</a>, we look at the original version of the Needham-Schroeder protocol, published in 1978.
+	  </div>
+
+	<script>
+
+	  class Sender extends Agent {
+	      
+	      constructor(id, facts, network) {
+		  super(id, facts, network);
+		  this.session = 0;
+		  this.state = 0;
+		  this.currentKey = null;
+
+	      }
+	      
+	      // Sender has the following states
+	      // init: initial state, ready to send message 1
+	      // (in case of multiple sessions, message 3 from previous session
+	      // has been sent)
+	      // waiting_2: message 1 sent, waiting for message 2. 
+	      
+	      process (msg, step) {
+		  switch (this.state) {
+		  case 0:
+		      this.init(step); break;
+		  case 1:
+		      this.sendEncryptedSecret(msg, step); break;
+		  default:
+		      throw 'Unknown state for agent ' + this.id;
+		  }
+	      }
+	      
+	      getSessionSecret (step) {
+		  var secret = 's_' + this.session;
+		  this.learns(secret, step)
+		  return secret;
+	      }
+
+	      getNonce (step) {
+		  var nonce = 'NA_' + this.session;
+		  this.learns(nonce, step);
+		  return nonce;
+	      }
+	      
+	      sendEncryptedSecret(msg, step) {
+		  var facts = msg.content.getFacts();
+		  if (facts.length != 1) { 
+		      console.log('Expecting exactly one argument, received: ' + facts.length);
+		      return;
+		  }
+		  
+		  var KBS_KAS = facts[0];
+		  this.learns(KBS_KAS, step);
+
+		  var facts2 = this.decrypt(KBS_KAS, 'KAS', step).getFacts();
+		  if (facts2.length != 4) { 
+		      console.log('Expecting exactly three inner messages, received: ' + facts.length);
+		      return;
+		  }
+		  var NA = facts2[0];
+		  if (NA != this.getNonce()) {
+		      throw 'Wrong nonce received: ' + NA + ' (expecting ' + this.getNonce() + ')';
+		  }
+		      
+		  var K = facts2[1];
+		  this.currentKey = K;
+
+		  var B = facts2[2];
+		  if (B != 'B') {
+		      throw 'Wrong sender received: ' + B + ' (expecting B)'; 
+		  }
+		  
+
+		  var K_KBS = facts2[3];
+
+		  var S_K = this.encrypt(this.getSessionSecret(step), K);
+		  var new_msg = {source:this.id, destination:'B',
+				 content:K_KBS + ', ' +S_K};
+		  this.sendMessage(new_msg, step);
+		  this.state = 0;
+		  
+	      }
+	      
+	      init (step) {
+		  this.session++;
+		  this.getSessionSecret(step);
+		  this.network.pastKeys.push(this.currentKey);
+		  var msg = {source:this.id, destination:'S', content:'A, B, ' + this.getNonce()};
+		  this.sendMessage(msg, step);
+		  this.state = 1;
+	      }
+	  }
+
+	  class Receiver extends Agent {
+	      constructor(id, facts, network) {
+		  super(id, facts, network);
+		  this.state = 0;
+	      }
+
+	      process(msg, step) {
+		  switch (this.state) {
+		  case 0:
+		      this.decryptMessage(msg, step); break;
+		  default:
+		      throw 'Unknown state for agent ' + this.id;
+		      
+		  }
+
+
+	      }
+
+	      decryptMessage(msg, step) {
+		  var facts = msg.content.getFacts();
+		  if (facts.length != 2) { 
+		      throw (this.id + ': Expecting exactly two arguments, received: ' + facts.length);
+		      return;
+		  }
+
+		  var K_KBS = facts[0];
+		  var S_K = facts[1];
+		  this.learns(K_KBS);
+		  this.learns(S_K);
+
+		  var K = this.decrypt(K_KBS, 'KBS', step);
+		  var S = this.decrypt(S_K, K, step);
+		  this.step = 0; 
+	      }
+
+	  }
+
+	  class Server extends Agent {
+	      constructor(id, facts, network) {
+		  super(id, facts, network);
+		  this.state = 0;
+		  this.key = null;
+		  this.session = 0;
+	      }
+
+	      
+	      getFreshKey(step) {
+		  var k = 'K_' + this.session++;
+		  this.learns(k, step)
+		  this.key = k;
+		  return k;
+	      }
+
+	      process (msg, step) {
+		  switch (this.state) {
+		  case 0:
+		      this.sendEncryptedKey(msg, step); break;
+		  default:
+		      throw 'Unknown state for agent ' + this.id;
+		  }
+	      }
+	      
+	      sendEncryptedKey(msg, step) {
+		  var facts = msg.content.getFacts();
+		  if (facts.length != 3) { 
+		      console.log('Expecting exactly two arguments, received: ' + facts.length);
+		      return;
+		  }
+		  
+		  var A = facts[0];
+		  var B = facts[1];
+		  var NA = facts[2];
+		  var K = this.getFreshKey(step);
+		  this.learns(K, step);
+		  this.learns(NA);
+		  
+		  var KAS = 'K' + A + 'S';
+		  var KBS = 'K' + B + 'S';
+
+		  var K_KBS = this.encrypt(K, KBS, step);
+		  
+		  var new_msg = {source:this.id, destination:A,
+				 content:this.encryptList([NA, K, B, K_KBS], KAS, step)};
+		  this.sendMessage(new_msg, step);
+		  
+	      }
+
+	  }
+	  
+	  class Attacker extends Agent {
+	      process (msg) {
+		  var facts = msg.content.getFacts();
+		  for (var i = 0; i < facts.length; i++)
+		      this.learns(facts[i]);
+	      }
+
+	      
+	      compromise(key) {
+		  if (this.network.pastKeys.includes(key)) {
+		      this.learns(key);
+		  }
+		  else
+		      throw key + ' is not a past key, cannot be compromised';
+	      }
+
+	  }
+	  
+	  var s1 = new NetStack('message_list1');	  
+	  var a1 = new Sender('A', ['s', 'KAS', 'A', 'B', 'NA'], s1);
+	  var b1 = new Receiver('B', ['A', 'B', 'KBS'], s1);
+	  var v1 = new Server('S', ['KES', 'KAS', 'KBS', 'A', 'B', 'E'], s1);
+	  var e1 = new Attacker('E', ['E', 'A', 'B', 'NE', 'fake', 'KES'], s1);
+	  s1.registerAgents([a1, b1, v1, e1]);
+	  s1.registerAttacker(e1);
+	  var c1 = new Command(s1, e1, [a1, b1, e1, v1]);
+	  
+	  a1.createDiv('agents_box1', 'agent');      
+	  b1.createDiv('agents_box1', 'agent');
+	  v1.createDiv('agents_box1', 'agent');
+	  e1.createDiv('adversary_box1', 'agent_top_right');
+
+	  setCurrentStep(0);
+	  
+	</script>
+	  
+
+    </div>      
+
+
+        <svg>
+      <defs>
+	<marker id="markerCircle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+          <circle cx="5" cy="5" r="3" style="stroke: none; fill:blue;"/>
+	</marker>
+	
+	<marker id="markerArrow" markerWidth="13" markerHeight="8" refX="2" refY="5"
+		orient="auto">
+          <path d="M2,2 L2,8 L10,5 L2,2" style="fill: blue;" />
+	</marker>
+	<marker id="markerBackArrow" markerWidth="13" markerHeight="13" refX="2" refY="5"
+		orient="auto">
+          <path d="M8,2 L8,8 L0,5 L8,2" style="fill: blue;" />
+	</marker>
+	<marker id="triangle" viewBox="0 0 10 10" refX="0" refY="5"
+		markerUnits="strokeWidth" markerWidth="10"
+		markerHeight="8" orient="auto">
+	  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+	</marker>
+      </defs>
+    </svg>

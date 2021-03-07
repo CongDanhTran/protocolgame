@@ -1,0 +1,327 @@
+<html>
+  <head>
+    <title>Security Protocols Analysis</title>
+	  <script src="../src/svg.js" type="text/javascript"></script>
+	  <script src="../src/Agent.js" type="text/javascript"></script>
+	  <script src="../src/Fact.js" type="text/javascript"></script>
+	  <script src="../src/NetStack.js" type="text/javascript"></script>
+	  <script src="../src/Command.js" type="text/javascript"></script>
+	  <script src="../src/ProtocolGame.js" type="text/javascript"></script>
+	  <link rel="stylesheet" href="../style.css">
+  </head>
+  
+  <body onload="c1.retrieve_cmds();">
+
+    <div id='intro'>
+      <h2>Protocol Game</h2>
+
+      In case you've missed them, check first the <a href='intro.html'>introduction</a>.
+      <!-- For those already familiar with the game, you can jump to the <a href="intro_exercises.html">list of exercises</a>.  -->
+
+      <h3>Interactive game</h3>
+	
+      <p> Let us consider now the following protocol:
+	<p>
+	  <b>Knowledge:</b> A:[s, KB, KE, A, B, NA], B:[A, B, E, KA, KB, KE, NB],
+	  E:[A, B, E, KA, KB, KE]<br>
+	  <b>Steps:</b>
+	  <ol>
+	    <li> A -> B: {#NA, A}KB
+	    <li> B -> A: {#NB, #NA}KA
+	    <li> A -> B: {#NB}KB
+	  </ol>
+
+	<p> This protocol is a simplified version of the original Public Key Needham-Schroeder protocol.
+	  Can you figure out a way for B to believe they are speaking with A?
+
+	  <div class='game'>
+	    <div class='inlined' id='box1' style="height:570px">
+	      <div class='agents' id='agents_box1'></div>
+	      <div class='networkbar' id='bar'></div>
+	      <div class='adversary' id='adversary_box1'></div>
+	      <div class='network'>
+		<center>Network stack</center>
+		<ul id='message_list1'>
+		</ul>
+	      </div>
+	      
+	    </div>
+	    <div id='console'>
+	      <div id='command'>
+		<h2>Commands</h2>
+		<textarea rows='11' type='text' id='commandbox'
+			  onkeydown="if (event.ctrlKey && event.keyCode == 13)
+				     document.getElementById('execute_cmds_button').click()"></textarea><br/>
+		
+		<button id='execute_cmds_button'
+			onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value);">Execute commands (Ctrl + Enter)</button>
+		<button
+		  id='add_msg_button'
+		  onclick="localStorage.clear(); location.reload();">Clear all</button>
+	      </div>
+	      <div id='console_log'>
+		<p id='log' class='err'>
+	      </div>
+	    </div>
+	    
+	  </div>
+
+	<script>
+
+	  class Sender extends Agent {
+
+		  constructor(id, facts, network) {
+			  super(id, facts, network);
+			  this.session = 0;
+			  this.state = 0;
+			  this.currentKey = null;
+			  this.default_receiver = "B"
+		  }
+
+		  // Sender has the following states
+		  // init: initial state, ready to send message 1
+		  // (in case of multiple sessions, message 3 from previous session
+		  // has been sent)
+		  // waiting_2: message 1 sent, waiting for message 2.
+
+		  process(msg, step) {
+			  switch (this.state) {
+				  case 0:
+					  this.init(msg, step);
+					  this.state = 1;
+					  break;
+				  case 1:
+					  this.sendReply(msg, step);
+					  this.state = 0;
+					  break;
+				  default:
+					  throw 'Unknown state for agent ' + this.id;
+			  }
+		  }
+
+		  getSessionSecret(step) {
+			  var secret = 's_' + this.session;
+			  this.learns(secret, step)
+			  return secret;
+		  }
+
+		  getNonce(step) {
+			  var nonce = 'NA_' + this.session;
+			  this.learns(nonce, step);
+			  return nonce;
+		  }
+
+		  sendReply(msg, step) {
+			  let facts = msg.content.getFacts();
+			  if (facts.length != 1) {
+				  console.log('Expecting exactly one argument, received: ' + facts.length);
+				  return;
+			  }
+
+			  var NA_NB_KA = facts[0];
+			  this.learns(NA_NB_KA, step);
+
+			  var facts2 = this.decrypt(NA_NB_KA, 'sK' + this.id, step).getFacts();
+			  if (facts2.length != 2) {
+				  console.log('Expecting exactly two inner messages, received: ' + facts.length);
+				  return;
+			  }
+
+			  var NA = facts2[0].trim()
+			  var NB = facts2[1].trim()
+
+			  if (NA != this.getNonce()) {
+				  throw 'Wrong nonce received: ' + NA + ' (expecting ' + this.getNonce() + ')';
+			  }
+			  let B = msg.source
+
+			  this.sendMessage({source:this.id, destination:B, content: this.encrypt(NB, 'pK' + B, step)})
+
+		  }
+
+
+
+		  init(init_receiver, step) {
+			  this.session++;
+			  this.getSessionSecret(step);
+			  this.network.pastKeys.push(this.currentKey);
+			  let init_msg = this.encryptList([this.getNonce(), this.id], 'pK' + init_receiver, step)
+			  var msg = {source: this.id, destination: init_receiver, content: init_msg};
+			  this.sendMessage(msg, step);
+			  this.state = 1;
+		  }
+	  }
+
+	  class Receiver extends Agent {
+	      constructor(id, facts, network) {
+			  super(id, facts, network);
+			  this.state = 0;
+			  this.session = 0;
+		  }
+
+		  getNonce (step) {
+			  var nonce = 'N'+this.id+'_' + this.session;
+			  this.learns(nonce, step);
+			  return nonce;
+		  }
+
+
+	      process(msg, step) {
+			  switch (this.state) {
+				  case 0:
+					  this.sendReply(msg, step);
+					  break;
+				  case 1:
+					  this.check(msg, stp);
+					  break;
+				  default:
+					  throw 'Unknown state for agent ' + this.id;
+
+			  }
+		  }
+
+		  sendReply(msg, step) {
+			  var facts = msg.content.getFacts();
+			  if (facts.length != 1) {
+				  console.log('Expecting exactly one argument, received: ' + facts.length);
+				  return;
+			  }
+
+			  var NAA_KB = facts[0];
+			  this.learns(NAA_KB)
+			  var facts2 = this.decrypt(NAA_KB, 'sK' + this.id, step).getFacts();
+			  console.log(facts2)
+			  if (facts2.length != 2) {
+				  console.log('Expecting exactly two inner messages, received: ' + facts.length);
+				  return;
+			  }
+
+			  let NA = facts2[0];
+			  let A = facts2[1];
+
+			  let NB = this.getNonce();
+
+			  let msg_content = this.encryptList([NA, NB], 'pK' + A, step);
+			  this.sendMessage({source: this.id, destination: A, content: msg_content}, step);
+		  }
+
+		  check(msg, step) {
+
+			  var facts = msg.content.getFacts();
+			  if (facts.length != 1) {
+				  console.log('Expecting exactly one argument, received: ' + facts.length);
+				  return;
+			  }
+
+			  var NB_KB = facts[0];
+			  this.learns(NB_KB, step);
+
+			  var facts2 = this.decrypt(NB_KB, 'sK' + this.id, step).getFacts();
+			  if (facts2.length != 1) {
+				  console.log('Expecting exactly one inner messages, received: ' + facts.length);
+				  return;
+			  }
+
+			  var NB = facts2[0].trim()
+
+			  if (NB != this.getNonce()) {
+				  throw 'Wrong nonce received: ' + NA + ' (expecting ' + this.getNonce() + ')';
+			  }
+
+
+		  }
+
+	      decryptMessage(msg, step) {
+		  var facts = msg.content.getFacts();
+		  if (facts.length != 2) { 
+		      throw (this.id + ': Expecting exactly two arguments, received: ' + facts.length);
+		      return;
+		  }
+
+		  var KA_KBS = facts[0];
+		  var S_K = facts[1];
+		  this.learns(KA_KBS);
+		  this.learns(S_K);
+
+		  var facts2 = this.decrypt(KA_KBS, 'KBS', step).getFacts();
+		  if (facts2.length != 2) { 
+		      console.log('Expecting exactly three inner messages, received: ' + facts.length);
+		      return;
+		  }
+
+		  var K = facts2[0];
+		  var A = facts2[1];
+
+		  if (A != 'A') {
+		      throw 'Wrong recipient received: ' + A + ' (expecting A)'; 
+		  }
+
+		  
+		  var S = this.decrypt(S_K, K, step);
+		  
+		  this.step = 0; 
+	      }
+
+	  }
+	  
+	  class Attacker extends Agent {
+	      process (msg) {
+		  var facts = msg.content.getFacts();
+		  for (var i = 0; i < facts.length; i++)
+		      this.learns(facts[i]);
+	      }
+
+	      
+	      compromise(key) {
+		  if (this.network.pastKeys.includes(key)) {
+		      this.learns(key);
+		  }
+		  else
+		      throw key + ' is not a past key, cannot be compromised';
+	      }
+
+	  }
+	  
+	  var s1 = new NetStack('message_list1');	  
+	  var a1 = new Sender('A', ['s', 'A', 'B', 'E', 'pKA', 'pKB', 'pKE', 'sKA', 'NA'], s1);
+	  var b1 = new Receiver('B', ['A', 'B', 'pKA', 'pKB', 'sKB'], s1);
+	  // var v1 = new Server('S', ['KES', 'KAS', 'KBS', 'A', 'B', 'E'], s1);
+	  var e1 = new Attacker('E', ['E', 'A', 'B', 'NE', 'fake', 'pKA', 'pKB', 'pKE', 'sKE' ], s1);
+	  s1.registerAgents([a1, b1, e1]);
+	  s1.registerAttacker(e1);
+	  var c1 = new Command(s1, e1, [a1, b1, e1]);
+	  
+	  a1.createDiv('agents_box1', 'agent');      
+	  b1.createDiv('agents_box1', 'agent');
+	  //v1.createDiv('agents_box1', 'agent');
+	  e1.createDiv('adversary_box1', 'agent_top_right');
+
+	  setCurrentStep(0);
+	  
+	</script>
+	  
+
+    </div>      
+
+
+        <svg>
+      <defs>
+	<marker id="markerCircle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+          <circle cx="5" cy="5" r="3" style="stroke: none; fill:blue;"/>
+	</marker>
+	
+	<marker id="markerArrow" markerWidth="13" markerHeight="8" refX="2" refY="5"
+		orient="auto">
+          <path d="M2,2 L2,8 L10,5 L2,2" style="fill: blue;" />
+	</marker>
+	<marker id="markerBackArrow" markerWidth="13" markerHeight="13" refX="2" refY="5"
+		orient="auto">
+          <path d="M8,2 L8,8 L0,5 L8,2" style="fill: blue;" />
+	</marker>
+	<marker id="triangle" viewBox="0 0 10 10" refX="0" refY="5"
+		markerUnits="strokeWidth" markerWidth="10"
+		markerHeight="8" orient="auto">
+	  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+	</marker>
+      </defs>
+    </svg>

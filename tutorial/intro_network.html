@@ -1,0 +1,132 @@
+<html>
+  <head>
+    <title>Security Protocols Analysis</title>
+	  <script src="../src/svg.js" type="text/javascript"></script>
+	  <script src="../src/Agent.js" type="text/javascript"></script>
+	  <script src="../src/Fact.js" type="text/javascript"></script>
+	  <script src="../src/NetStack.js" type="text/javascript"></script>
+	  <script src="../src/Command.js" type="text/javascript"></script>
+	  <script src="../src/ProtocolGame.js" type="text/javascript"></script>
+	  <link rel="stylesheet" href="../style.css">
+  </head>
+
+  <body>
+
+    <div class='desc'>
+      <h2>Protocol Game</h2>
+
+      In case you've missed it, check the <a href='intro.html'>introduction</a> first.
+      <!-- For those already familiar with the game, you can jump to the <a href="intro_exercises.html">list of exercises</a>.  -->
+
+      <h3>Explicit Network</h3>
+
+      <p>In the previous example, Alice sends the message "secret" to Bob, but the network she uses for that is not made explicit.
+
+      <p> We now introduce the network as a grey bar located to the right of the agents. Compared to the previous example, we now have an extra step, which represents the message going through the network.
+
+      <p> To visualise what is going in the network, we indicate on the arrow from the sender to the network the message number (e.g., [0] for the first message sent on the network), and the full message can be found in the Network Stack (and displayed when hovering the number above the arrow). Each message in the stack is associated with a unique identifier, and a status, which starts with the "/" symbol. We consider two statuses at this stage:
+	<ul>
+	  <li> "/w" indicates that the message is waiting in the stack (and the message should be displayed in italic). 
+	  <li> "/t" indicates that the message has been transmitted to its intended recipient (and the message should be displayed in green). 
+	</ul>
+    </div>
+	<div class='game'>
+	  <div class='inlined' id='box1' style="height:400px">
+	    <div class='agents' id='agents_box1'>
+	    </div>
+	    <div class='networkbar' id='bar'>
+	    </div>
+	    <div class='adversary' style="height:150px">
+	    </div>
+	    <div class='network'>
+	      <center>Network stack</center>
+	      <ul id='message_list'>
+	      </ul>
+	    </div>
+	  </div>
+	  <div class='steps'>
+	    <button onclick="step0();"><h3>Step 0</h3></button><br/>
+	    <button onclick="step1();"><h3>Step 1 (A sends message)</h3></button><br/>
+	    <button onclick="step2();"><h3>Step 2 (message transmitted)</h3></button><br/>
+	  </div>
+	<script>
+
+	  class Listener extends Agent {
+	      process (msg, step) {
+		  var facts = msg.content.getFacts();
+		  for (var i = 0; i < facts.length; i++) {
+		      this.learns(facts[i], step);
+		  }
+	      }
+	  }
+	  
+	  var s = new NetStack('message_list');
+	  var a = new Agent('A', ['secret'], s);
+	  var b = new Listener('B', [], s);
+	  s.registerAgents([a, b]);
+
+	  a.createDiv('agents_box1', 'agent');      
+	  b.createDiv('agents_box1', 'agent');
+	  setCurrentStep(0);
+
+	  function step0 () {
+	      clearAll(0);
+	      b.forgets(0);
+	      b.updateContent();
+	      s.clearStack(0);
+	      s.refreshStack();
+	      setCurrentStep(0);
+	  }
+	  
+	  function step1 () {
+	      step0();
+	      // connectDivsTo('agentA', 'bar', 'blue',  'A -> B: secret', 1);
+	      s.addMessage(create_message('A -> B: secret'), 1, 'w');
+	      s.refreshStack();
+	      setCurrentStep(1);	
+	      
+	  }
+	  
+	  function step2 () {
+	      step1();
+	      // connectDivsBack('agentB', 'bar', 'blue', 'A -> B: secret', 2);
+	      s.transmitMessage(0, 2);
+	      // b.learns('secret', 2);
+	      b.updateContent();
+	      // s.changeStatus('0', 't');
+	      s.refreshStack();
+	      
+	      setCurrentStep(2);	
+	      
+	  }
+	  
+	</script>
+</div>
+	
+	<div class='desc'>
+	  <p> We  introduce the attacker in the <a href="intro_attacker_intercept.html">next part</a>. 
+	</div>
+    </div>      
+
+
+    <svg>
+      <defs>
+	<marker id="markerCircle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+          <circle cx="5" cy="5" r="3" style="stroke: none; fill:blue;"/>
+	</marker>
+	
+	<marker id="markerArrow" markerWidth="13" markerHeight="8" refX="2" refY="5"
+		orient="auto">
+          <path d="M2,2 L2,8 L10,5 L2,2" style="fill: blue;" />
+	</marker>
+	<marker id="markerBackArrow" markerWidth="13" markerHeight="13" refX="2" refY="5"
+		orient="auto">
+          <path d="M8,2 L8,8 L0,5 L8,2" style="fill: blue;" />
+	</marker>
+	<marker id="triangle" viewBox="0 0 10 10" refX="0" refY="5"
+		markerUnits="strokeWidth" markerWidth="10"
+		markerHeight="8" orient="auto">
+	  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+	</marker>
+      </defs>
+    </svg>

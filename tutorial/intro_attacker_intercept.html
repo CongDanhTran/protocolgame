@@ -1,0 +1,470 @@
+<html>
+  <head>
+    <title>Security Protocols Analysis</title>
+	  <script src="../src/svg.js" type="text/javascript"></script>
+	  <script src="../src/Agent.js" type="text/javascript"></script>
+	  <script src="../src/Fact.js" type="text/javascript"></script>
+	  <script src="../src/NetStack.js" type="text/javascript"></script>
+	  <script src="../src/Command.js" type="text/javascript"></script>
+	  <script src="../src/ProtocolGame.js" type="text/javascript"></script>
+	  <link rel="stylesheet" href="../style.css">
+  </head>
+
+  <body>
+
+    
+    <div class='desc'>
+      <h2>Protocol Game</h2>
+
+      In case you've missed it, check the <a href='intro.html'>introduction</a> first. <!-- For those already familiar with the game, you can jump to the <a href="intro_exercises.html">list of exercises</a>.  -->
+
+
+      <p> In general, the network can be controlled by an adversary, who can perform the following operations:
+	<ul>
+	  <li> Intercept any message (lack of confidentiality)
+	  <li> Block any message (lack of availability)
+	  <li> Add some message pretending to be another agent (lack of integrity/authentication)
+	</ul>
+	We first look at message interception. 
+	
+	<h3> Interception </h3>
+
+      <p> Let us consider an active adversary Eve (usually referred as E), located on the right hand side of the network bar. The first possible attack is for Eve to intercept any message, e.g., in the case of the previous protocol, to intercept the message "secret" from Alice to Bob.
+
+      <p> We therefore introduce a new status "/i", which indicates that the message has been intercepted (and the message should be underlined). 
+
+      </p>
+    </div>
+    
+    <div class='game'>
+      <div class='inlined' id='box1' style="height:450px">
+	<div class='agents' id='agents_box1'></div>
+	<div class='networkbar' id='bar'></div>
+	<div class='adversary' id='adversary_box1'></div>
+	<div class='network'>
+	  <center>Network stack</center>
+	  <ul id='message_list1'>
+	  </ul>
+	</div>
+	
+      </div>
+      <div class='steps'>
+	<button onclick="step10();"><h3>Step 0</h3></button><br/>
+	<button onclick="step11();"><h3>Step 1 (A sends message)</h3></button><br/>
+	<button onclick="step12();"><h3>Step 2 (E intercepts message)</h3></button><br/>
+	<button onclick="step13();"><h3>Step 3 (message transmitted)</h3></button><br/>
+      </div>
+      <script>
+	
+	  class Listener extends Agent {
+	      process (msg, step) {
+		  var facts = msg.content.getFacts();
+		  for (var i = 0; i < facts.length; i++) {
+		      this.learns(facts[i], step);
+		  }
+	      }
+	  }
+	  var s1 = new NetStack('message_list1');
+	  var a1 = new Agent('A', ['secret'], s1);
+	  var b1 = new Listener('B', [], s1);
+	  var e1 = new Listener('E', [], s1);
+	  s1.registerAgents([a1, b1, e1]);
+	  s1.registerAttacker(e1);
+
+	  a1.learns('secret', 0);
+	  a1.createDiv('agents_box1', 'agent');      
+	  b1.createDiv('agents_box1', 'agent');
+	  e1.createDiv('adversary_box1', 'agent_top_right');
+
+	  setCurrentStep(0);
+
+	  function step10 () {
+	      clearBox(0, 'box1');
+	      s1.clearStack(0);
+	      s1.refreshStack();
+	      b1.forgets(0);
+	      b1.updateContent();
+	      e1.forgets(0);
+	      e1.updateContent();
+	      setCurrentStep(0);
+	  }
+	  
+	  function step11 () {
+	      step10();
+	      clearBox(1, 'box1');
+	      s1.addMessage(create_message('A -> B: secret'), 1, 'w', 'box1');
+	      s1.refreshStack();
+	      setCurrentStep(1);	
+	      
+	  }
+	  function step12 () {
+	      step11();
+	      clearBox(2, 'box1');
+	      s1.interceptMessage(0, 2, 'box1')
+	      e1.updateContent();
+	      s1.refreshStack();
+	      setCurrentStep(2);   	      
+	  }
+
+	  
+	  function step13 () {
+	      step12();
+	      s1.transmitMessage(0, 3, 'box1');
+	      b1.updateContent();
+	      s1.refreshStack();
+	      setCurrentStep(3);	
+	      
+	  }
+	
+      </script>
+    </div>
+    
+
+    <div class='desc'>
+	Step 2 corresponds to the interception of the message on the network, after which Eve  knows the message "secret". 
+       
+	<h3> Blocking </h3>
+	
+	<p> Eve can also block any message on the network. For instance, she can block the message "secret" from Alice to Bob.
+	<p> We now introduce the status "/b", which indicates that the message has been blocked (and the message should be displayed in red). 
+	  
+    </div>
+    <div class='game'>
+      <div class='inlined' id='box2' style="height:450px">
+	  <div class='agents' id='agents_box2'></div>
+	  <div class='networkbar' id='bar'></div>
+	  <div class='adversary' id='adversary_box2'></div>
+	  <div class='network'>
+	    <center>Network stack</center>
+	    <ul id='message_list2'></ul>
+	  </div>
+	</div>
+	<div class='steps'>
+	  <button onclick="step20();"><h3>Step 0</h3></button><br/>
+	  <button onclick="step21();"><h3>Step 1 (A2 sends message)</h3></button><br/>
+	  <button onclick="step22();"><h3>Step 2 (message blocked)</h3></button><br/>
+	</div>
+    <script>
+      var s2 = new NetStack('message_list2');
+      var a2 = new Agent('A2', ['secret'], s2);
+      var b2 = new Listener('B2', [], s2);
+      var e2 = new Listener('E2', [], s2);
+      s2.registerAgents([a2, b2, e2]);
+      s2.registerAttacker(e2);
+
+      a2.createDiv('agents_box2', 'agent');      
+      b2.createDiv('agents_box2', 'agent');
+      e2.createDiv('adversary_box2', 'agent_top_right');
+      
+      setCurrentStep(0);
+      
+      function step20 () {
+	  clearBox(0, 'box2');
+ 	  s2.clearStack(0);
+	  s2.refreshStack();	      
+	  setCurrentStep(0);
+	  
+      }
+      
+      function step21 () {
+	  step20();
+	  clearBox(1, 'box2');
+	  s2.addMessage(create_message('A2 -> B2: secret'), 1, 'w', 'box2');
+	  s2.refreshStack();
+	  setCurrentStep(1);	
+	  
+      }
+      
+      function step22 () {
+	  step21();
+	  clearBox(0, 'box2');
+	  s2.blockMessage(0, 2);
+	  s2.refreshStack();	      
+	  setCurrentStep(2);
+      }
+
+	  
+	</script>
+    </div>
+
+    <div class='desc'>
+      <p> Of course, Eve can also combine interception and blocking.
+      </p>
+    </div>
+    <div class='game'>
+      <div class='inlined' id='box3' style="height:450px">
+	<div class='agents' id='agents_box3'>
+	</div>
+	<div class='networkbar' id='bar'>
+	</div>
+	<div class='adversary' id='adversary_box3'>
+	</div>
+	<div class='network'>
+	  <center>Network stack</center>
+	  <ul id='message_list3'>
+	  </ul>
+	</div>
+      </div>
+      <div class='steps'>
+	<button onclick="step30();"><h3>Step 0</h3></button><br/>
+	<button onclick="step31();"><h3>Step 1 (A3 sends message)</h3></button><br/>
+	<button onclick="step32();"><h3>Step 2 (E3 intercepts message)</h3></button><br/>
+	<button onclick="step33();"><h3>Step 3 (message blocked)</h3></button><br/>
+      </div>
+      
+      <script>
+	var s3 = new NetStack('message_list3');
+	var a3 = new Agent('A3', ['secret'], s3);
+	var b3 = new Listener('B3', [], s3);
+	var e3 = new Listener('E3', [], s3);
+	s3.registerAttacker(e3);
+	s3.registerAgents([a3, b3, e3]);
+	
+	a3.createDiv('agents_box3', 'agent');      
+	b3.createDiv('agents_box3', 'agent');
+	e3.createDiv('adversary_box3', 'agent_top_right');
+	
+	setCurrentStep(0);
+	
+	function step30 () {
+	    clearBox(0, 'box3');
+	    e3.forgets(0);
+	    e3.updateContent();
+	    s3.clearStack(0);
+	    s3.refreshStack();	      
+	    
+	    setCurrentStep(0);
+	}
+	
+	function step31 () {
+	    step30();
+	    clearBox(1, 'box3');
+	    s3.addMessage(create_message('A3 -> B3: secret'), 1, 'w', 'box3');
+	    s3.refreshStack();
+	    
+	    setCurrentStep(1);	
+	    
+	}
+	function step32 () {
+	    step31();
+	    clearBox(2, 'box3');
+	    s3.interceptMessage(0, 2, 'box3');
+	    e3.updateContent();
+	    s3.refreshStack();	      	      
+	    setCurrentStep(2);	
+	    
+	}
+	function step33 () {
+	    step32();
+	    clearBox(0, 'box3');
+	    s3.blockMessage(0, 3);
+	    s3.refreshStack();	    	      
+	    setCurrentStep(3);	
+	    
+	}
+	  
+	</script>
+    </div>
+    <div class='desc'>
+
+      <p> In either case, Bob never knows the message "secret".
+
+	<h3>Message creation</h3>
+
+	Finally, the last attack we consider here is for Eve to create messages, as if she were a normal agent in the system (which she might), and possibly spoofing the identity of the sender.
+
+      <p> For instance, Eve can send the message "fake" (assuming Eve knows that message) to Bob pretending to be Alice. 
+      </p>
+    </div>
+    <div class='game'>
+      <div class='inlined' id='box4' style="height:450px">
+	<div class='agents' id='agents_box4'></div>
+	<div class='networkbar' id='bar'></div>
+	<div class='adversary' id='adversary_box4'></div>
+	<div class='network'>
+	  <center>Network stack</center>
+	  <ul id='message_list4'>
+	  </ul>
+	</div>
+	
+      </div>
+      <div class='steps'>
+	<button onclick="step40();"><h3>Step 0</h3></button><br/>
+	<button onclick="step41();"><h3>Step 1 (E4 sends message)</h3></button><br/>
+	<button onclick="step42();"><h3>Step 2 (message transmitted)</h3></button><br/>
+      </div>
+      
+      <script>
+	var s4 = new NetStack('message_list4');
+	var a4 = new Agent('A4', ['secret'], s4);
+	var b4 = new Listener('B4', [], s4);
+	var e4 = new Agent('E4', ['fake'], s4);
+	s4.registerAgents([a4, b4, e4]);
+	s4.registerAttacker(e4);
+	
+	a4.createDiv('agents_box4', 'agent');      
+	b4.createDiv('agents_box4', 'agent');
+	e4.createDiv('adversary_box4', 'agent_top_right');
+	
+	
+	setCurrentStep(0);
+	
+	function step40 () {
+	    clearBox(0, 'box4');
+	    b4.forgets(0);
+	    b4.updateContent();
+	    s4.clearStack(0);
+	    setCurrentStep(0);
+	}
+	  
+	function step41 () {
+	    step40();
+	    clearBox(1, 'box4');
+	    s4.injectMessage(e4, create_message('A4 -> B4:fake'), 1, 'w', 'box4');
+	    s4.refreshStack();
+	    setCurrentStep(1);	
+	    
+	}
+	
+	function step42 () {
+	    step41();
+	    clearBox(2, 'box4');
+	    s4.transmitMessage(0, 2);
+	    b4.updateContent();
+	    s4.refreshStack();
+	    setCurrentStep(2);	
+	    
+	}
+	
+	</script>
+    </div>
+    <div class='desc'>
+      <p> The assumption that Eve knows the message "fake" is very important (which is indicated above by using the color black for "fake" in Eve), as we do not want to consider the case where an adversary can send messages containing information they do not have access to. For instance, in the case above, Eve cannot send the message "secret", because she does not know it. However, she can intercept it from Alice, blocks it so that it does not arrive to Bob, and send a fake message instead. This is a classical example of a <b>Man-in-the-middle attack</b>.
+
+      </p>
+    </div>
+    <div class='game'>
+	<div class='inlined' id='box5' style="height:450px">
+	  <div class='agents' id='agents_box5'></div>
+	  <div class='networkbar' id='bar'></div>
+	  <div class='adversary' id='adversary_box5'></div>
+	  <div class='network'>
+	    <center>Network stack</center>
+	    <ul id='message_list5'>
+	    </ul>
+	  </div>
+	</div>
+	<div class='steps'>
+	  <button onclick="step50();"><h3>Step 0</h3></button><br/>
+	  <button onclick="step51();"><h3>Step 1 (A5 sends message 0)</h3></button><br/>
+	  <button onclick="step52();"><h3>Step 2 (E5 intercepts message 0)</h3></button><br/>
+	  <button onclick="step53();"><h3>Step 3 (message 0 blocked)</h3></button><br/>
+	  <button onclick="step54();"><h3>Step 4 (E5 sends message 1)</h3></button><br/>
+	  <button onclick="step55();"><h3>Step 5 (message 1 transmitted)</h3></button><br/>
+	</div>
+	
+	<script>
+	  var s5 = new NetStack('message_list5');
+	  var a5 = new Agent('A5', ['secret'], s5);
+	  var b5 = new Listener('B5', [], s5);
+	  var e5 = new Listener('E5', ['fake'], s5);
+	  s5.registerAttacker(e5);
+	  s5.registerAgents([a5, b5, e5]);
+
+	  a5.createDiv('agents_box5', 'agent');      
+	  b5.createDiv('agents_box5', 'agent');
+	  e5.createDiv('adversary_box5', 'agent_top_right');
+
+	  setCurrentStep(0);
+	  
+	  function step50 () {
+	      clearBox(0, 'box5');
+	      s5.clearStack(0);
+	      s5.refreshStack();
+	      b5.forgets(0);
+	      b5.updateContent();
+	      e5.forgets(0);
+	      e5.updateContent();
+	      setCurrentStep(0);
+	  }
+	  
+	  function step51 () {
+	      step50();
+	      clearBox(1, 'box5');
+	      s5.addMessage(create_message('A5 -> B5: secret'), 1, 'w', 'box5');
+	      s5.refreshStack();
+	      setCurrentStep(1);	
+	      
+	  }
+	  
+	  function step52 () {
+	      step51();
+	      clearBox(2, 'box5');
+	      e5.updateContent();
+	      s5.interceptMessage(0, 2);
+	      s5.refreshStack();
+	      setCurrentStep(2);	
+	      
+	  }
+
+	  function step53() {
+	      step52();
+	      clearBox(3, 'box5');
+	      s5.blockMessage(0, 3);
+	      s5.refreshStack();
+	      setCurrentStep(3);
+	  }
+
+	  function step54 () {
+	      step53();
+	      clearBox(4, 'box5')
+	      s5.injectMessage(e5, create_message('A5 -> B5: fake'), 4, 'w', 'box5')
+	      s5.refreshStack();
+
+	      setCurrentStep(4);	
+	      
+	  }
+
+	  function step55 () {
+	      step54();
+	      clearBox(5, 'box5')
+	      s5.transmitMessage(1, 5);
+	      s5.refreshStack();
+	      b5.updateContent();
+	      setCurrentStep(5);	
+	      
+	  }
+
+	</script>
+
+    </div>
+	
+
+    <div class='desc'>
+      <p> In order to provide some confidentiality and integrity, agents can use encryption and decryption. We introduce these concepts in the <a href="intro_encryption.html">next part</a>. 
+
+    </div>
+  </body>
+
+
+        <svg>
+      <defs>
+	<marker id="markerCircle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+          <circle cx="5" cy="5" r="3" style="stroke: none; fill:blue;"/>
+	</marker>
+	
+	<marker id="markerArrow" markerWidth="13" markerHeight="8" refX="2" refY="5"
+		orient="auto">
+          <path d="M2,2 L2,8 L10,5 L2,2" style="fill: blue;" />
+	</marker>
+	<marker id="markerBackArrow" markerWidth="13" markerHeight="13" refX="2" refY="5"
+		orient="auto">
+          <path d="M8,2 L8,8 L0,5 L8,2" style="fill: blue;" />
+	</marker>
+	<marker id="triangle" viewBox="0 0 10 10" refX="0" refY="5"
+		markerUnits="strokeWidth" markerWidth="10"
+		markerHeight="8" orient="auto">
+	  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+	</marker>
+      </defs>
+    </svg>

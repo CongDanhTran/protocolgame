@@ -1,0 +1,249 @@
+<html>
+  <head>
+    <title>Security Protocols Analysis</title>
+	  <script src="../src/svg.js" type="text/javascript"></script>
+	  <script src="../src/Agent.js" type="text/javascript"></script>
+	  <script src="../src/Fact.js" type="text/javascript"></script>
+	  <script src="../src/NetStack.js" type="text/javascript"></script>
+	  <script src="../src/Command.js" type="text/javascript"></script>
+	  <script src="../src/ProtocolGame.js" type="text/javascript"></script>
+	  <link rel="stylesheet" href="../style.css">
+  </head>
+
+  <body>
+
+    <div class='desc'>
+      <h2>Protocol Game</h2>
+
+      In case you've missed them, check first the <a href='intro.html'>introduction</a> and the <a href='intro_network.html'>adversary</a>.
+      <!-- For those already familiar with the game, you can jump to the <a href="intro_exercises.html">list of exercises</a>.  -->
+
+      <h3>Symmetric Encryption</h3>
+
+      <p>In the previous examples, all messages were sent in plain-text, meaning that Eve could intercept all of them, and know their content. The traditional way to avoid this is to use encryption: given a message "m" and a key "K", the message "{m}K" is a cipher-text corresponding to "m" encrypted by "K". We first consider the case of symmetric encryption: only agents who knows the key "K" can encrypt and decrypt using that key.
+
+      <p> For instance, consider the following protocol, where we make explicit the initial knowledge of the different agents:<br/>
+	<ol>
+	  <b>Knowledge:</b> A:[secret, K], B:[K], E:[]
+	  <li> A -> B : {secret}K
+	</ol>
+
+      <p> Let us now consider a simple interception attack. 
+    </div>
+    <div class='game'>
+      <div class='inlined' id='box1' style="height:450px">
+	<div class='agents' id='agents_box1'></div>
+	<div class='networkbar' id='bar'></div>
+	<div class='adversary' id='adversary_box1'></div>
+	<div class='network'>
+	  <center>Network stack</center>
+	  <ul id='message_list1'>
+	  </ul>
+	</div>
+	
+      </div>
+      <div class='steps'>
+	<button onclick="step10();"><h3>Step 0</h3></button><br/>
+	<button onclick="step11();"><h3>Step 1 (A sends message)</h3></button><br/>
+	<button onclick="step12();"><h3>Step 2 (E intercepts message 0)</h3></button><br/>
+	<button onclick="step13();"><h3>Step 3 (E transmits message 0)</h3></button><br/>
+      </div>
+      
+      <script>
+	class Listener extends Agent {
+	      process (msg, step) {
+		  var facts = msg.content.getFacts();
+		  for (var i = 0; i < facts.length; i++) {
+		      this.learns(facts[i], step);
+		  }
+	      }
+	  }
+
+	  var s1 = new NetStack('message_list1');
+	  var a1 = new Agent('A', ['secret', 'K', '{secret}K'], '');
+	  var b1 = new Listener('B', ['K'], '');
+	  var e1 = new Listener('E', [], '');
+
+	  s1.registerAgents([a1, b1, e1]);
+	  s1.registerAttacker(e1);
+	  
+	  a1.createDiv('agents_box1', 'agent');      
+	  b1.createDiv('agents_box1', 'agent');
+	  e1.createDiv('adversary_box1', 'agent_top_right');
+
+	  setCurrentStep(0);
+
+	  function step10 () {
+	      clearBox(0, 'box1');
+	      b1.forgets(0);
+	      b1.updateContent();
+	      s1.clearStack(0);
+	      s1.refreshStack();
+	      setCurrentStep(0);
+	  }
+	  
+	  function step11 () {
+	      step10();
+	      clearBox(1, 'box1');
+	      s1.clearStack(1);
+	      s1.addMessage(create_message('A -> B: {secret}K'), 1, 'w', 'box1');
+	      s1.refreshStack();
+	      setCurrentStep(1);	
+	      
+	  }
+	  function step12 () {
+	      step11();
+	      clearBox(2, 'box1');
+	      s1.interceptMessage(0, 2, 'box1');
+	      s1.refreshStack();
+	      e1.updateContent();
+	      setCurrentStep(2);	
+	      
+	  }
+	  function step13 () {
+	      step12();
+	      s1.transmitMessage(0, 3, 'box1');
+	      s1.refreshStack();
+	      b1.learns('secret', 3);
+	      b1.updateContent();
+	      setCurrentStep(3);	
+	      
+	  }
+	  
+	</script>
+    </div>
+    
+    <div class='desc'>
+      <p> Let us first observe that even though Alice's initial knowledge is [secret, K], we automatically added "{secret}K". Indeed, any agent knowing a message "m" and a key "K" can do the encryption and will then know the resulting cipher-text. In general, we try to only add to the knowledge of an agent information that is relevant. For instance, we could also add "{{secret}K}K" or "{K}K" to the knowledge of Alice, however this is not required by the protocol.
+
+      <p> Similarly, as soon as Bob receives "{secret}K", we can add "secret" to his knowledge, since he also knows the key "K". On the other hand, since Eve does not know "K", even though she can intercept "{secret}K", she cannot know "secret" since she cannot do the decryption.
+
+      <p> Of course, Eve could still block the message "A -> B : secret", so that Bob does not know the secret. Let us consider the case where she tries to send a fake message to Bob, and we add "fake" and "K2" to her initial knowledge.
+      </p>      
+    </div>
+      <div class='game'>
+	<div class='inlined' id='box2' style="height:450px">
+	  <div class='agents' id='agents_box2'></div>
+	  <div class='networkbar' id='bar'></div>
+	  <div class='adversary' id='adversary_box2'></div>
+	  <div class='network'>
+	    <center>Network stack</center>
+	    <ul id='message_list2'>
+	    </ul>
+	  </div>
+	</div>
+	<div class='steps'>
+	  <button onclick="step20();"><h3>Step 0</h3></button><br/>
+	  <button onclick="step21();"><h3>Step 1 (A sends message)</h3></button><br/>
+	  <button onclick="step22();"><h3>Step 2 (E intercepts message 0)</h3></button><br/>
+	  <button onclick="step23();"><h3>Step 3 (E blocks message 0)</h3></button><br/>
+	  <button onclick="step24();"><h3>Step 4 (E sends message 1)</h3></button><br/>
+	  <button onclick="step25();"><h3>Step 5 (E transmits message 1)</h3></button><br/>
+	</div>
+	
+	<script>
+	  var s2 = new NetStack('message_list2');
+	  var a2 = new Agent('A2', ['secret', 'K', '{secret}K'], s2);
+	  var b2 = new Listener('B2', ['K'], s2);
+	  var e2 = new Listener('E2', ['K2', 'fake', '{fake}K2'], s2);
+	  s2.registerAttacker(e2);
+	  s2.registerAgents([a2, b2, e2]);
+	  
+	  a2.createDiv('agents_box2', 'agent');      
+	  b2.createDiv('agents_box2', 'agent');
+	  e2.createDiv('adversary_box2', 'agent_top_right');
+
+	  setCurrentStep(0);
+
+	  function step20 () {
+	      clearBox(0, 'box2');
+	      s2.clearStack(0);
+	      s2.refreshStack();
+	      b2.forgets(0);
+	      b2.updateContent();
+	      setCurrentStep(0);
+	  }
+	  
+	  function step21 () {
+	      step20();
+	      clearBox(1, 'box2');
+	      s2.addMessage(create_message('A2 -> B2: {secret}K'), 1, 'w', 'box2');
+	      s2.refreshStack();
+	      setCurrentStep(2);	
+	      
+	  }
+	  function step22 () {
+	      step21();
+	      clearBox(2, 'box2');
+	      s2.interceptMessage(0, 2, 'box2');
+	      // connectDivsBack('agentE2', 'bar', 'blue', 'A -> B: {secret}K', 2, 'box2');
+	      // s2.changeStatus('0', 'wi');
+	      s2.refreshStack();
+
+	      // e2.learns('{secret}K', 2);
+	      e2.updateContent();
+	      setCurrentStep(2);	
+	  }
+	  
+	  function step23 () {
+	      step22();
+	      s2.blockMessage(0, 3);
+	      // s2.changeStatus('0', 'bi');
+	      s2.refreshStack();
+	      setCurrentStep(3);	
+	      
+	  }
+	  
+	  function step24 () {
+	      step23();
+	      // connectDivsTo('agentE2', 'bar', 'blue', 'A -> B: {fake}K2', 4, 'box2');
+	      s2.injectMessage(e2, create_message('A2 -> B2: {fake}K2'), 1, 'w', 'box2');
+	      s2.refreshStack();
+	      setCurrentStep(4);	
+	      
+	  }
+	  function step25 () {
+	      step24();
+	      // connectDivsBack('agentB2', 'bar', 'blue', 'A -> B: {fake}K2', 5, 'box2');
+	      s2.transmitMessage(1, 5, 'box2');
+	      // b2.learns('{fake}K2', 5);
+	      b2.updateContent();
+	      // s2.changeStatus('1', 't');
+	      s2.refreshStack();
+	      setCurrentStep(5);	
+	      
+	  }
+	  
+	</script>
+      </div>
+      <div class='desc'>
+
+
+      <p> As previously done, we automatically added "{fake}K2" to Eve's knowledge. However, even though Bob knows "{fake}K2", he does not know "fake": if he tries to decrypt "{fake}K2" with the key "K", he would not get "fake" (we consider here that Eve wants Bob to know a precise message "fake", not some random text). It is also important that even if Bob knew "K2", he would try to decrypt with the key "K" as it is what is expected from the protocol. 
+
+      <p> In the next part, we introduce the <a href='intro_game.html'>interactive console</a>. 
+
+    </div>      
+
+
+        <svg>
+      <defs>
+	<marker id="markerCircle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+          <circle cx="5" cy="5" r="3" style="stroke: none; fill:blue;"/>
+	</marker>
+	
+	<marker id="markerArrow" markerWidth="13" markerHeight="8" refX="2" refY="5"
+		orient="auto">
+          <path d="M2,2 L2,8 L10,5 L2,2" style="fill: blue;" />
+	</marker>
+	<marker id="markerBackArrow" markerWidth="13" markerHeight="13" refX="2" refY="5"
+		orient="auto">
+          <path d="M8,2 L8,8 L0,5 L8,2" style="fill: blue;" />
+	</marker>
+	<marker id="triangle" viewBox="0 0 10 10" refX="0" refY="5"
+		markerUnits="strokeWidth" markerWidth="10"
+		markerHeight="8" orient="auto">
+	  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+	</marker>
+      </defs>
+    </svg>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Help</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+<body>
+    <h3>Help for the Protocol Game</h3>
+
+    <div>
+        This section contains the explanation for all the commands available in the game. Please see the <a href="tutorial/index.html">tutorial</a> for further details.
+
+        <ul>
+            <li><span class='cmd'>new_session()</span>: triggers the first agent in the protocol (usually A) to start a new session of the protocol; Note that for every identifier starting with the # symbol,  <span class='cmd'>new_session</span> command will create a fresh value;
+            <li><span class='cmd'>transmit(id)</span>: transmits the message with the corresponding id in the stack;
+            <li><span class='cmd'>block(id)</span>: blocks the message with the corresponding id in the stack;
+            <li><span class='cmd'>intercept(id)</span>: intercepts the message with the corresponding id in the stack;
+            <li><span class='cmd'>inject(X -> Y : msg)</span>: injects the message "msg", where "X" and "Y" are agents in the systems.
+            <li><span class='cmd'>encrypt(fact, key)</span>: if E knows both <span class='cmd'>fact</span> and <span class='cmd'>key</span>, then E will know  <span class='cmd'>{fact}key</span>;
+            <li><span class='cmd'>decrypt({fact}key, key)</span>: if E knows both <span class='cmd'>{fact}key</span> and <span class='cmd'>key</span>, then E will know  <span class='cmd'>fact</span>;
+            <li><span class='cmd'>compromise(key)</span>: the attacker will now the key <span class='cmd'>key</span>, only if that key was used in a previous session by the main agent A.
+        </ul>
+    </div>
+</body>
+</html>
