@@ -142,11 +142,11 @@ function connectDivs(agent, network, color,  id, msg, step, frame, reverse) {
 	    x1 += agent.offsetWidth;
 	    y1 += (agent.offsetHeight / 2) + 20;
 
-	    box.setAttribute('style', 'position:absolute;padding-left:10px;padding-right:10px;font-color:red;background-color:white;font-size:14px;top:'+ (y1-10) + 'px;left:'+ (x1 + 20) + 'px');
+	    box.setAttribute('style', 'position:absolute;padding-left:10px;padding-right:10px;font-color:red;background-color:white;font-size:14px;top:'+ (y1-10 -id*25) + 'px;left:'+ (x1 + 40) + 'px');
 
 	    // box.style.left = x1 + 20;
 	    // box.style.top = y1 - 10;
-	    let svg = createBoxSVG(x1, (y1 - 20), (x2 - x1), 40, step, frame);
+	    let svg = createBoxSVG(x1, (y1 - 20 - id*25), (x2 - x1), 40, step, frame);
 	    if (reverse)
             drawLeftArrow(svg, color);
 	    else

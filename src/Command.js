@@ -41,12 +41,13 @@ class Command {
         this.network = network;
         this.attacker = attacker;
         this.agent_list = agent_list;
-        this.step = 0;
+        this.step = 1;
     }
 
     execute_cmd(str) {
         //update_trace(str);
-        clearAnnotations();
+        if(this.step===1)
+			clearAnnotations();
 
         if (str.trim() == '')
             return;
@@ -123,10 +124,10 @@ class Command {
         if (commands_raw == null)
             return;
 
-        var commands = commands_raw.split(';');
+        var commands = commands_raw.replace(/(?:\r\n|\r|\n)/g,"").split(';');
         var error_found = false;
         for (var i = 0; i < commands.length; i++) {
-            var cmd = commands[i].trim();
+            var cmd = commands[i] = commands[i].trim();
             if (cmd == '')
                 continue;
             try {
@@ -142,12 +143,14 @@ class Command {
         let commandbox = document.getElementById("commandbox")
         if (error_found)
             commandbox.style.color = "red";
-        change_value('commandbox', commands_raw);
+        change_value('commandbox', commands.join(";\r\n"));
         // To use for contentEditable
         // setEndOfContenteditable(document.getElementById('commandbox'));
         commandbox.focus();
         commandbox.selectionStart = commandbox.selectionEnd = commandbox.value.length;
-
+	
+		let stepper = document.getElementById("stepper");
+		stepper.setAttribute("max", commands.length -1);
 
     }
 

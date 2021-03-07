@@ -234,7 +234,7 @@ class Agent {
 		}
 
 		for (let i=0; i < template_facts.length; i++) {
-			let M1 = this.matchTemplate(template_facts[i], str_facts[i])
+			let M1 = this.matchTemplate(template_facts[i], str_facts[i],step)
 			for (let key in M1) {
 				M[key] = M1[key]
 			}
