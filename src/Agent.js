@@ -62,9 +62,15 @@ class Agent {
 		content.appendChild(k);
 		for (var i = 0; i < this.facts.length; i++) {
 			var f = this.facts[i];
+			if (i!== 0 && i <= this.facts.length - 1){
+				var seperator = document.createElement('span');
+				seperator.setAttribute('class', 'fact');
+				seperator.setAttribute('class', 'seperator');
+				seperator.setAttribute('data-step', f.step-0.5);
+				seperator.innerHTML = ", ";
+				content.appendChild (seperator);
+			}
 			content.appendChild(f.createSpan());
-			if (i < this.facts.length - 1)
-				content.appendChild (document.createTextNode (", "));
 		}
 		content.scrollTop = content.scrollHeight;
 
