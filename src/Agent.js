@@ -51,7 +51,7 @@ class Agent {
 		}
 
 		var k = document.createElement('b');
-		k.innerHTML = 'Knows:';
+		k.innerHTML = 'Knows: ';
 
 		var facts_str = '';
 		for (var i = 0; i < this.facts.length; i++)

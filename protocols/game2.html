@@ -254,7 +254,7 @@ transmit(2);</textarea><br/>
 			
 			$("[data-step]:not(.lineno)").each(function(){
 					var step = $(this).data("step");
-				
+                    if(step === "S") step = 0;
  					if( currentStep > step){
 						if($(this).hasClass("message")){
 							$(this).css("display", "list-item");
