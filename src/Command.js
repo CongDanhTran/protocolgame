@@ -44,9 +44,9 @@ class Command {
         this.step = 1;
     }
 
-    execute_cmd(str) {
+    execute_cmd(str, viewAll) {
         //update_trace(str);
-        if(this.step===1)
+        if(this.step === 1 || !viewAll)
 			clearAnnotations();
 
         if (str.trim() == '')
@@ -119,19 +119,31 @@ class Command {
         }
     }
 
+    santitise_commands(cmds){
+        return cmds.replace(/(?:\r\n|\r|\n)/g,"");
+    }
+
     retrieve_cmds(){
         var commands_raw = localStorage.getItem(window.location.href);
+        var debug = localStorage.getItem(window.location.href+"_debug") === "true";
         if (commands_raw == null)
             return;
 
-        var commands = commands_raw.replace(/(?:\r\n|\r|\n)/g,"").split(';');
+        var commands = this.santitise_commands(commands_raw).split(';');
+
+        if(debug == true){
+            let stepper = document.getElementById("stepper");
+            stepper.removeAttribute("disabled");
+            stepper.setAttribute("max", commands.length -1);
+        }
+
         var error_found = false;
         for (var i = 0; i < commands.length; i++) {
             var cmd = commands[i] = commands[i].trim();
             if (cmd == '')
                 continue;
             try {
-                this.execute_cmd(cmd);
+                this.execute_cmd(cmd, debug);
                 this.step++;
             } catch (err) {
                 error_found = true;
@@ -148,19 +160,16 @@ class Command {
         // setEndOfContenteditable(document.getElementById('commandbox'));
         commandbox.focus();
         commandbox.selectionStart = commandbox.selectionEnd = commandbox.value.length;
-	
-		let stepper = document.getElementById("stepper");
-		stepper.setAttribute("max", commands.length -1);
-
     }
 
-    store_cmds_and_reload(str) {
+    store_cmds_and_reload(str,debug = false) {
         // var str_no_nbsp = str.replace(/(&nbsp;)*/g,"");
         localStorage.setItem(window.location.href, str);
+        localStorage.setItem(window.location.href+"_debug", debug);
         location.reload();
     }
 
-
+    
     // execute_cmds(str)
     // {
     // 	if (str == null || str == '') {

@@ -12,6 +12,7 @@
 	
 	<script src="../src/jquery-3.6.0.slim.js" type="text/javascript"></script>
 	<script src="../src/jquery-linedtextarea.js"></script>
+    <script src="../src/Debugger.js"></script>
 	<link href="../jquery-linedtextarea.css" type="text/css" rel="stylesheet" />
 </head>
 
@@ -32,9 +33,6 @@
 
     <div class='game'>
         <div class='game' style="height:800px">
-			<div style="height:50px">
-			    <input style="line-height: 30px; width: 300px; text-align:center;" type="number" id="stepper" min="0" step="1" value="-1" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" />
-            </div>
             <div class='inlined' id='box1' style="height:760px">
                 <div class='agents' id='agents_box1'></div>
                 <div class='networkbar' id='bar'></div>
@@ -64,6 +62,9 @@ transmit(2);</textarea><br/>
                             id='add_msg_button'
                             onclick="localStorage.clear(); location.reload();">Clear all</button>
                     <br/>
+                    <button id='debugger_button'
+                            onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value,true);">Debugger</button>
+                            <input disabled style="width:100px; text-align:center;" type="number" id="stepper" min="0" step="1" value="-1" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" />
                 </div>
                 <div id='console_log'>
 <p id='log' class='err'>
@@ -243,43 +244,23 @@ transmit(2);</textarea><br/>
 
         setCurrentStep(0);
 		
-		$("#commandbox").linedtextarea();
+        $(function(){
+            $("#commandbox").linedtextarea();
+            
+            $("#stepper").on("change keyup", function(){
+			var currentStep = $(this).val() === "" ? -1 : $(this).val();		
+            showStep(currentStep,);
+		    });
 		
-		$("#stepper").on("change keyup", function(){
-			var currentStep = $(this).val() === "" ? -1 : $(this).val();
-			
-			$("[data-step]").css("color", "black").css("font-weight", "normal");
-			$(".message[data-step]").css("color", "green").css("font-weight", "normal");	
-			$("[data-step="+currentStep+"]").css("color", "red").css("font-weight", "bold");
-			
-			$("[data-step]:not(.lineno)").each(function(){
-					var step = $(this).data("step");
-                    if(step === "S") step = 0;
- 					if( currentStep > step){
-						if($(this).hasClass("message")){
-							$(this).css("display", "list-item");
-						}else{
-							$(this).css("display", "inline");
-						}						
-					}else if( currentStep == step){					
-						$(this).css("display", "inline");
-					}
-					else{
-						$(this).css("display", "none");
-					}
-								
-			});
-		});
-		
-		$(".lineno").on("click",function(){
-			var step = $(this).data("step");
-			var stepper = $("#stepper");
-			if(stepper.prop("max") >= step){
-				stepper.val(step);
-				stepper.change(); 
-			}
-		});
-		
+            $(".lineno").on("click",function(){
+                var step = $(this).data("step");
+                var stepper = $("#stepper");
+                if(stepper.prop("max") >= step){
+                    stepper.val(step);
+                    showStep(step);
+                }
+            });
+        });	
     </script>
 
 
