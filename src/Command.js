@@ -12,6 +12,9 @@ function stripHtml(html){
     return temporalDivElement.textContent || temporalDivElement.innerText || "";
 }
 
+function inDebugMode(){
+    return localStorage.getItem(window.location.href+"_debug") === "true";
+}
 
 
 function setEndOfContenteditable(contentEditableElement)
@@ -124,13 +127,16 @@ class Command {
     }
 
     retrieve_cmds(){
+        if(window.location.hash === ""){
+            window.location.assign(window.location.href+"#0"); 
+        }
         var commands_raw = localStorage.getItem(window.location.href);
-        var debug = localStorage.getItem(window.location.href+"_debug") === "true";
         if (commands_raw == null)
             return;
 
         var commands = this.santitise_commands(commands_raw).split(';');
 
+        var debug = inDebugMode();
         if(debug == true){
             let stepper = document.getElementById("stepper");
             stepper.removeAttribute("disabled");
@@ -162,13 +168,22 @@ class Command {
         commandbox.selectionStart = commandbox.selectionEnd = commandbox.value.length;
     }
 
-    store_cmds_and_reload(str,debug = false) {
+    store_cmds(str,debug) {
         // var str_no_nbsp = str.replace(/(&nbsp;)*/g,"");
         localStorage.setItem(window.location.href, str);
         localStorage.setItem(window.location.href+"_debug", debug);
+    }
+
+    store_cmds_and_reload(str, debug = false) {
+        this.store_cmds(str,debug);
         location.reload();
     }
 
+    store_cmds_and_loadSession(str, sessionId = "") {
+        this.store_cmds(str,inDebugMode());
+        window.location.assign(window.location.origin + window.location.pathname+"#"+sessionId);
+        location.reload();
+    }
     
     // execute_cmds(str)
     // {
