@@ -68,13 +68,15 @@ transmit(2);</textarea>
                                 onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value,true);">Debugger</button>
                         <input  type="number" id="stepper" min="0" step="1" value="-1" disabled
                                 onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" />
+                        <input type="checkbox" id="hidePrev" name="hidePrev"/>
+                        <label for="hidePrev">Hide previous annotations</label>
                         <br/>
                         <label>Session</label>
-                        <!-- <button id='load_session_button'
-                                onclick="c1.store_cmds_and_loadSession(document.getElementById('commandbox').value, document.getElementById('sessionId').value)">Save and new session</button> -->
                         <input type="number" id="sessionId" min="0" step="1"
-                                onchange="c1.store_cmds_and_loadSession(document.getElementById('commandbox').value, document.getElementById('sessionId').value)"
                                 onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" />
+                        <button id='load_session_button'
+                                onclick="c1.store_cmds_and_loadSession(document.getElementById('commandbox').value, document.getElementById('sessionId').value)">Load session</button>
+                        <br/>
                         <button id='add_msg_button'
                                 onclick="if(window.confirm('Clear all sessions data?')){localStorage.clear(); location.reload();}">Clear all sessions</button>
                     </div>

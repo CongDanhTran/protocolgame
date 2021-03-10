@@ -343,7 +343,7 @@ textarea {
     height: 40px;
 }
 
-.group-button input{
+.group-button input[type="number"]{
     width: auto;
     line-height: 32px;
     width:100px; 
