@@ -2,7 +2,7 @@
 <head>
     <title>Security Protocols Analysis</title>
     <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="../style_game.css">
+    <link rel="stylesheet" href="../style_game_v2.css">
     <script src="../src/svg.js" type="text/javascript"></script>
     <script src="../src/Agent.js" type="text/javascript"></script>
     <script src="../src/Fact.js" type="text/javascript"></script>
@@ -31,15 +31,9 @@
 
 <p> <b>Objectives</b>: E knows the current session secret; B knows fake.
 
-    <div class='game'>
-        <div class='game' style="height:800px">
-            <div class='inlined' id='box1' style="height:760px">
+        <div class='game'>
                 <div class='agents' id='agents_box1'></div>
-                <div class='networkbar' id='bar'></div>
-                <div class='adversary' id='adversary_box1'></div>
-            </div>
-            <div id='console'>
-                <div class='network'>
+                <div class='network' id='bar'>
                     <center>Network stack</center>
                     <ul id='message_list1'>
                     </ul>
@@ -60,32 +54,31 @@ transmit(2);</textarea>
                     <div class="group-button">
                         <button id='execute_cmds_button'
                                 onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value);">Execute commands (Ctrl + Enter)</button>
-                        <button
-                                id='add_msg_button'
-                                onclick="c1.store_cmds_and_reload('');">Clear</button>
-                        <br/>
                         <button id='debugger_button'
-                                onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value,true);">Debugger</button>
-                        <input  type="number" id="stepper" min="0" step="1" value="-1" disabled
+                                onclick="c1.store_cmds_and_reload(document.getElementById('commandbox').value,true);">Run Debugger</button>
+                        <input  type="number" id="stepper" min="0" step="1" value="0" disabled
                                 onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" />
-                        <input type="checkbox" id="hidePrev" name="hidePrev"/>
-                        <label for="hidePrev">Hide previous annotations</label>
+                        <input type="checkbox" id="showAll" name="showAll" checked/>
+                        <label for="showAll">All annotations</label>
                         <br/>
                         <label>Session</label>
                         <input type="number" id="sessionId" min="0" step="1"
                                 onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" />
                         <button id='load_session_button'
                                 onclick="c1.store_cmds_and_loadSession(document.getElementById('commandbox').value, document.getElementById('sessionId').value)">Load session</button>
+                        <button
+                                id='add_msg_button'
+                                onclick="c1.store_cmds_and_reload('');">Clear</button>
                         <br/>
                         <button id='add_msg_button'
                                 onclick="if(window.confirm('Clear all sessions data?')){localStorage.clear(); location.reload();}">Clear all sessions</button>
                     </div>
                 </div>
                 <div id='console_log'>
-<p id='log' class='err'>
+                    <p id='log' class='err'>
+                </div>
     </div>
-    </div>
-    </div>
+  
 <div id="help">
     <h2>Command list</h2>
     <ul>

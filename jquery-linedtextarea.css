@@ -1,35 +1,58 @@
+.linedtextarea textarea, .codelines, .linedwrap, .lines, .lineno {
+	margin: 0;
+	border: 0;
+	padding: 0;
+	outline: 0;
+	box-sizing: border-box;
+	vertical-align: middle;
+	list-style: none;
+  }
+
 .linedwrap {
-	border: 1px solid #c0c0c0;
+	border: 4px solid lightslategray;
 	padding: 3px;
+	border-radius: 5px;
 }
 
-.linedtextarea {
-	padding: 0px;
-	margin: 0px;
-}
-
-
-
-.linedwrap .lines {
+.lines {
 	margin-top: 0px;
 	width: 50px;
 	float: left;
 	overflow: hidden;
-	border-right: 1px solid #c0c0c0;
+	border-right: 3px solid lightslategray;
 	margin-right: 10px;
 }
 
-.linedwrap .codelines {
-	padding-top: 5px;
+
+
+.lineno {
+	width: 100%;
+	display: block;
+	text-align: center;
+	padding-right: 5px;
+	line-height: 1.5;
+	font-size: 1em;
 }
 
-.linedwrap .codelines .lineno {
-	padding-right: 0.5em;
-	padding-top: 0.0em;
-	text-align: right;
-	white-space: nowrap;
-}
-
-.linedwrap .codelines .lineselect {
+.lineselect {
 	color: red;
+}
+
+
+.linedtextarea textarea{
+	display: inline-block;
+	height: 220px;
+	font-size: 1em;
+	line-height: 1.5;
+	font-family: "Roboto Mono", monospace;
+	word-break: break-all;
+    border-radius: 5px;
+	background-color: #fff;
+	overflow-wrap: normal;
+	overflow-x: auto;
+	white-space: pre;
+}
+
+.breakpoint{
+	position: absolute;
 }

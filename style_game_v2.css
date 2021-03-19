@@ -76,8 +76,6 @@ h2 {
 }
 
 #commandbox {
-    border:1px solid;
-    padding:2px;
     margin-bottom:5px;
 }
 
@@ -113,13 +111,16 @@ textarea {
 
 
 .agents {
-    padding:5px;
     margin-bottom: 10px;
     height: auto;
     /*max-height:250px;*/
     position:relative;
     overflow-y: hidden;
     overflow-x: auto;
+}
+
+.agent h2 {
+    margin-top: 0;
 }
 
 .agent, .adversary {
@@ -129,14 +130,15 @@ textarea {
     border-color: darkslateblue;
     border-radius: 5px;
     background-color: white;
-
-
-    min-height:150px;
-    margin:5px;
+    min-height:180px;
     margin-bottom: 50px;
     padding:5px;
-    margin-right:50px;
+    margin-right:40px;
     z-index:20;
+}
+
+.agent:last-of-type {
+    margin-right:0px;
 }
 
 .adversary
@@ -147,7 +149,6 @@ textarea {
 .network {
     height:150px;
     margin:30 auto;
-    margin-bottom: 50px;
     border-style: solid;
     border-color: lightslategray;
     border-radius: 5px;
@@ -155,7 +156,7 @@ textarea {
 
 
 .agent_content {
-    height:90px;
+    max-height:120px;
     overflow-y:scroll;
 
 }
@@ -229,7 +230,7 @@ svg {
 
 
 #message_list1{
-    height:90px;
+    height:110px;
     overflow-y:scroll;
     list-style: none;
     margin-left:-25px;
@@ -286,4 +287,21 @@ svg {
 
 .tooltip:hover .tooltiptext {
     visibility: visible;
+}
+
+.group-button button{
+    width: auto;
+    height: 40px;
+}
+
+.group-button input[type="number"]{
+    width: auto;
+    line-height: 32px;
+    width:100px; 
+    text-align:center;
+}
+
+.group-button label{
+    padding: 5px;
+    font-weight: bold;
 }

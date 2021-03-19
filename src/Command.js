@@ -12,11 +12,6 @@ function stripHtml(html){
     return temporalDivElement.textContent || temporalDivElement.innerText || "";
 }
 
-function inDebugMode(){
-    return localStorage.getItem(window.location.href+"_debug") === "true";
-}
-
-
 function setEndOfContenteditable(contentEditableElement)
 {
     var range,selection;
@@ -137,13 +132,9 @@ class Command {
         var commands = this.santitise_commands(commands_raw).split(';');
 
         var debug = inDebugMode();
-        if(debug == true){
-            let stepper = document.getElementById("stepper");
-            stepper.removeAttribute("disabled");
-            stepper.setAttribute("max", commands.length -1);
-        }
 
-        var error_found = false;
+        var error_found = [];
+        var error_logs = [];
         for (var i = 0; i < commands.length; i++) {
             var cmd = commands[i] = commands[i].trim();
             if (cmd == '')
@@ -152,26 +143,40 @@ class Command {
                 this.execute_cmd(cmd, debug);
                 this.step++;
             } catch (err) {
-                error_found = true;
-                console.log(err);
-                change_value('log', '[Command ' + cmd + ']<br> ' + err);
+                error_found.push(i);
+                error_logs.push(err);
+                console.log(err);            
             }
         }
 
         let commandbox = document.getElementById("commandbox")
-        if (error_found)
+        if (error_found.length > 0){
             commandbox.style.color = "red";
+            this.store_errors(error_found);
+            change_value('log', '[Command ' + commands[error_found[0]] + ']<br> ' + error_logs[0]);
+        }
         change_value('commandbox', commands.join(";\r\n"));
         // To use for contentEditable
-        // setEndOfContenteditable(document.getElementById('commandbox'));
+        setEndOfContenteditable(document.getElementById('commandbox'));
         commandbox.focus();
         commandbox.selectionStart = commandbox.selectionEnd = commandbox.value.length;
+
+        if(debug == true){
+            let stepper = document.getElementById("stepper");
+            stepper.removeAttribute("disabled");
+            stepper.setAttribute("max", error_found.length > 0 ? error_found[0] + 1 : commands.length -1);
+        }
     }
 
     store_cmds(str,debug) {
         // var str_no_nbsp = str.replace(/(&nbsp;)*/g,"");
         localStorage.setItem(window.location.href, str);
         localStorage.setItem(window.location.href+"_debug", debug);
+        localStorage.removeItem(window.location.href+"_errors");
+    }
+
+    store_errors(errorsArray) {
+        localStorage.setItem(window.location.href+"_errors", errorsArray.join(","));
     }
 
     store_cmds_and_reload(str, debug = false) {
