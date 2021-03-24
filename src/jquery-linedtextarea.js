@@ -1,11 +1,15 @@
 /**
- * Adapted from Alan Williamson
+ * Adapted from Alan Williamson 2010
+ * 
+ * Added breakpoint, debugger support
+ * 
  * Usage:
  *   Displays a line number count column to the left of the textarea
  *   
  *   $(".lined").linedtextarea({
- *   	selectedLine: 10,
- *    	selectedClass: 'lineselect'
+ *   	selectedLine: 1,
+ *    	selectedClass: 'lineselect',
+ * 		initialLines : 10,
  *   });
  *
 
@@ -21,12 +25,16 @@
 		 * Helper function to make sure the line numbers are always
 		 * kept up to the current system
 		 */
-		var fillOutLines = function (codeLines, h, lineNo) {
-			while ((codeLines.height() - h) <= 0) {
+		var fillOutLines = function (codeLines, h, lineNo, firstLoadLineNumber) {
+			while ((codeLines.height() - h) <= 0 || lineNo < firstLoadLineNumber) {
 				if (lineNo == opts.selectedLine)
 					codeLines.append("<div class='lineno lineselect' data-step='" + lineNo + "'>" + lineNo + "</div>");
 				else
 					codeLines.append("<div class='lineno' data-step='" + lineNo + "'>" + lineNo + "</div>");
+				
+				codeLines.find(".lineno[data-step =" + lineNo + "]").click(function(){
+					addBreakPointListener(this);
+				});
 
 				lineNo++;
 			}
@@ -62,7 +70,7 @@
 			/* Draw the number bar; filling it out where necessary */
 			linesDiv.append("<div class='codelines'></div>");
 			var codeLinesDiv = linesDiv.find(".codelines");
-			lineNo = fillOutLines(codeLinesDiv, linesDiv.height(), 1);
+			lineNo = fillOutLines(codeLinesDiv, linesDiv.height(), 1, opts.initialLines);
 
 			/* Move the textarea to the selected line */
 			if (opts.selectedLine != -1 && !isNaN(opts.selectedLine)) {
@@ -106,6 +114,7 @@
 	// default options
 	$.fn.linedtextarea.defaults = {
 		selectedLine: -1,
-		selectedClass: 'lineselect'
+		selectedClass: 'lineselect',
+		initialLines : 10,
 	};
 })(jQuery);

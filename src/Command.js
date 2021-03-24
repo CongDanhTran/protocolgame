@@ -184,10 +184,15 @@ class Command {
         location.reload();
     }
 
-    store_cmds_and_loadSession(str, sessionId = "") {
+    store_cmds_and_loadSession(str, sessionId = 0) {
         this.store_cmds(str,inDebugMode());
         window.location.assign(window.location.origin + window.location.pathname+"#"+sessionId);
         location.reload();
+    }
+
+    loadSessionNewTab(sessionId = 0){
+        window.open(window.location.pathname+"#"+sessionId.value);
+        sessionId.value = window.location.hash.split("#")[1];
     }
     
     // execute_cmds(str)

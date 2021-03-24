@@ -64,8 +64,10 @@ transmit(2);</textarea>
                         <label>Session</label>
                         <input type="number" id="sessionId" min="0" step="1"
                                 onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" />
-                        <button id='load_session_button'
+                        <button
                                 onclick="c1.store_cmds_and_loadSession(document.getElementById('commandbox').value, document.getElementById('sessionId').value)">Load session</button>
+                        <button
+                                onclick="c1.loadSessionNewTab(document.getElementById('sessionId'))">Open in new Tab</button>
                         <button
                                 id='add_msg_button'
                                 onclick="c1.store_cmds_and_reload('');">Clear</button>

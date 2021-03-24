@@ -14,6 +14,21 @@ function createBreakPoint() {
     return marker;
 }
 
+function addBreakPointListener(line) {
+    var hasBreakPoint = $(line).find(".breakpoint").length;
+
+    var breakpoints = $(".breakpoint");
+    if (breakpoints.length) {
+        breakpoints.remove();
+        localStorage.removeItem(window.location.href + "_breakpoint");
+    }
+
+    if (!hasBreakPoint) {
+        $(line).prepend(createBreakPoint());
+        localStorage.setItem(window.location.href + "_breakpoint", $(line).data("step"));
+    }
+}
+
 (function ($) {
 
     $.fn.debugger = function (options) {
@@ -54,7 +69,10 @@ function createBreakPoint() {
 
         return this.each(function () {
 
-            $(this).linedtextarea();
+            var stepper = $(opts.stepper);
+            var lastLine = stepper.prop("max") * 1;
+
+            $(this).linedtextarea({initialLines : lastLine + 1});
 
             var breakPoint = getBreakPoint();
 
@@ -63,29 +81,9 @@ function createBreakPoint() {
                 breakLine.first().prepend(createBreakPoint());
             }
 
-            $(".lineno").on("click", function () {
-
-                var hasBreakPoint = $(this).find(".breakpoint").length;
-
-                var breakpoints = $(".breakpoint");
-                if (breakpoints.length) {
-                    breakpoints.remove();
-                    localStorage.removeItem(window.location.href + "_breakpoint");
-
-                }
-
-                if (!hasBreakPoint) {
-                    $(this).prepend(createBreakPoint());
-                    localStorage.setItem(window.location.href + "_breakpoint", $(this).data("step"));
-                }
-            });
-
-
             if (inDebugMode()) {
                 var error = localStorage.getItem(window.location.href + "_errors");
-                var stepper = $(opts.stepper);
 
-                var lastLine = stepper.prop("max");
                 if (error != null) {
                     var line = lastLine = error.split(",")[0] * 1 + 1;
                     hightLight("[data-step=" + line + "]", "red", "bold");
@@ -105,7 +103,7 @@ function createBreakPoint() {
                 });
 
                 $("[data-step]:not(.lineno)").on("click", function () {
-                    var step = $(this).data("step");
+                    var step = Math.ceil($(this).data("step"));
                     if (lastLine >= step) {
                         stepper.val(step);
                         showStep(step, showAll());
